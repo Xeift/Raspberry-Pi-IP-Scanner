@@ -1,6 +1,6 @@
 import platform
 import subprocess
-
+import os
 import nmap
 
 
@@ -75,6 +75,7 @@ mode = str(input(
     '[3] Get possible Raspberry Pi IP by scanning which specific port is open (medium)\n' \
     'If you know the MAC of your RPI, use [1]. Otherwise, use [2] or [3]: '
 ))
+print('[Scanning...]')
 
 if mode == '1':
     mac = str(input('Enter the MAC address of your Raspberry Pi (full MAC is not required, e.g.: D8-3A-DD-11-2): '))
@@ -142,3 +143,6 @@ else:
     print('------------------------------------------------------------')
     print(f'❌ Consider check your input. You entered `{mode}`, but the script only accepts `1, 2, 3`')
     print('------------------------------------------------------------')
+
+print('Done!')
+os.system("pause")
