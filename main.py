@@ -8,11 +8,14 @@ import nmap
 import psutil
 
 
+def normalize_mac(raw_mac):
+    return raw_mac.upper().replace('-', ':')
+
 def get_ip_by_mac_windows(mac):
     raw = subprocess.check_output(['arp', '-a'], text=True)
     for line in raw.splitlines():
-        print(line)
-        if mac.lower() in line.lower():
+        line = normalize_mac(line)
+        if mac in line:
             return line.split()[0]
     return None
 
@@ -102,7 +105,7 @@ print('[Scanning...]')
 
 if mode == '1':
     mac = str(input('Enter the MAC address of your Raspberry Pi (full MAC is not required, accecpt both "-" and ":" for separator, e.g. d8-3a-dd-11-2 or D8:3A:DD:11:2): '))
-    mac = mac.lower().replace(':', '-')
+    mac = normalize_mac(mac)
     ip = ''
     if platform.system() == 'Windows': ip = get_ip_by_mac_windows(mac)
     if platform.system() == 'Linux': ip = get_ip_by_mac_linux(mac)
