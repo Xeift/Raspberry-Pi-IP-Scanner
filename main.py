@@ -1,12 +1,17 @@
-import platform
-import subprocess
+import ipaddress
 import os
+import platform
+import socket
+import subprocess
+
 import nmap
+import psutil
 
 
 def get_ip_by_mac_windows(mac):
     raw = subprocess.check_output(['arp', '-a'], text=True)
     for line in raw.splitlines():
+        print(line)
         if mac.lower() in line.lower():
             return line.split()[0]
     return None
@@ -24,7 +29,24 @@ OUI_MODEL_MAP = {
     'D8:3A:DD': 'Raspberry Pi 4/400/CM4/5'
 }
 
-def scan_pi_by_oui(subnet='192.168.1.0/24'):
+def get_default_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    finally:
+        s.close()
+
+def get_active_ipv4_subnet():
+    default_ip = get_default_local_ip()
+
+    for addrs in psutil.net_if_addrs().values():
+        for a in addrs:
+            if a.family == socket.AF_INET and a.address == default_ip and a.netmask:
+                net = ipaddress.IPv4Network((a.address, a.netmask), strict=False)
+                return str(net)
+
+def scan_pi_by_oui(subnet):
     nm = nmap.PortScanner()
     nm.scan(hosts=subnet, arguments='-sn')
 
@@ -48,7 +70,7 @@ def scan_ssh_port(ip):
     except KeyError:
         return False
 
-def scan_ping_ssh(port, subnet='192.168.1.0/24'):
+def scan_ping_ssh(port, subnet):
     nm = nmap.PortScanner()
     nm.scan(hosts=subnet, arguments=f'-p {port} --open')
 
@@ -66,7 +88,8 @@ def scan_ping_ssh(port, subnet='192.168.1.0/24'):
             pis.append((host, mac, ''))
 
     return pis
-    
+
+
 
 mode = str(input(
     'Enter scan mode.\n' \
@@ -78,8 +101,8 @@ mode = str(input(
 print('[Scanning...]')
 
 if mode == '1':
-    mac = str(input('Enter the MAC address of your Raspberry Pi (full MAC is not required, e.g.: D8-3A-DD-11-2): '))
-    mac = mac.replace('-', ':')
+    mac = str(input('Enter the MAC address of your Raspberry Pi (full MAC is not required, accecpt both "-" and ":" for separator, e.g. d8-3a-dd-11-2 or D8:3A:DD:11:2): '))
+    mac = mac.lower().replace(':', '-')
     ip = ''
     if platform.system() == 'Windows': ip = get_ip_by_mac_windows(mac)
     if platform.system() == 'Linux': ip = get_ip_by_mac_linux(mac)
@@ -93,14 +116,15 @@ if mode == '1':
         print(f'IP: {ip}')
         print(f'MAC: {mac}')
         model = ''
-        for (o, m) in enumerate(OUI_MODEL_MAP):
+        for o, m in OUI_MODEL_MAP.items():
             if mac.startswith(o): model = m
         print(f'Model: {model}')
         print('22 port (SSH): ', scan_ssh_port(ip))
         print('------------------------------------------------------------')
 
 elif mode == '2':
-    pis = scan_pi_by_oui()
+    subnet = get_active_ipv4_subnet()
+    pis = scan_pi_by_oui(subnet)
     if pis:
         print(f'✅ Found Raspberry Pi device(s)!')
         print('------------------------------------------------------------')
@@ -121,6 +145,7 @@ elif mode == '3':
     if port == '' or port.isdigit():
         if port == '': port = 22
         else: port = int(port)
+        subnet = get_active_ipv4_subnet()
         pis = scan_ping_ssh(port)
         if pis:
             print(f'✅ Found device(s) which 22 port (SSH) is open!')
