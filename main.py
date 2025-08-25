@@ -3,9 +3,11 @@ import os
 import platform
 import socket
 import subprocess
+import time
 
 import nmap
 import psutil
+from yaspin import yaspin
 
 
 def normalize_mac(raw_mac):
@@ -101,19 +103,23 @@ mode = str(input(
     '[3] Get possible Raspberry Pi IP by scanning which specific port is open (medium)\n' \
     'If you know the MAC of your RPI, use [1]. Otherwise, use [2] or [3]: '
 ))
-print('[Scanning...]')
 
 if mode == '1':
     mac = str(input('Enter the MAC address of your Raspberry Pi (full MAC is not required, accecpt both "-" and ":" for separator, e.g. d8-3a-dd-11-2 or D8:3A:DD:11:2): '))
+    sp = yaspin(text='[Scanning...]', color='cyan')
+    sp.start()
+
     mac = normalize_mac(mac)
     ip = ''
     if platform.system() == 'Windows': ip = get_ip_by_mac_windows(mac)
     if platform.system() == 'Linux': ip = get_ip_by_mac_linux(mac)
     if not ip:
+        sp.stop()
         print('------------------------------------------------------------')
         print(f'❌ Device with MAC {mac} not found.')
         print('------------------------------------------------------------')
     else:
+        sp.stop()
         print('------------------------------------------------------------')
         print(f'✅ Found a Raspberry Pi device!')
         print(f'IP: {ip}')
@@ -126,11 +132,14 @@ if mode == '1':
         print('------------------------------------------------------------')
 
 elif mode == '2':
+    sp = yaspin(text='[Scanning...]', color='cyan')
+    sp.start()
     subnet = get_active_ipv4_subnet()
     pis = scan_pi_by_oui(subnet)
     if pis:
-        print(f'✅ Found Raspberry Pi device(s)!')
+        sp.stop()
         print('------------------------------------------------------------')
+        print(f'✅ Found Raspberry Pi device(s)!')
 
         for (ip, mac, model) in pis:
             print(f'IP: {ip}')
@@ -139,18 +148,22 @@ elif mode == '2':
             print('22 port (SSH): ', scan_ssh_port(ip))
             print('------------------------------------------------------------')
     else:
+        sp.stop()
         print('------------------------------------------------------------')
         print(f'❌ Possible Raspberry Pi devices not found.')
         print('------------------------------------------------------------')
 
 elif mode == '3':
     port = input('Enter the port you want to scan (default 22): ')
+    sp = yaspin(text='[Scanning...]', color='cyan')
+    sp.start()
     if port == '' or port.isdigit():
         if port == '': port = 22
         else: port = int(port)
         subnet = get_active_ipv4_subnet()
-        pis = scan_ping_ssh(port)
+        pis = scan_ping_ssh(port, subnet)
         if pis:
+            sp.stop()
             print(f'✅ Found device(s) which 22 port (SSH) is open!')
             print('------------------------------------------------------------')
             for (ip, mac, model) in pis:
@@ -159,10 +172,12 @@ elif mode == '3':
                 print(f'Model: {model}')
                 print('------------------------------------------------------------')
         else:
+            sp.stop()
             print('------------------------------------------------------------')
             print(f'❌ Possible Raspberry Pi devices not found.')
             print('------------------------------------------------------------')
     else:
+        sp.stop()
         print('------------------------------------------------------------')
         print(f'❌ Consider check your input. You entered `{port}`, but the script only accepts `1 ~ 65535`')
         print('------------------------------------------------------------')
