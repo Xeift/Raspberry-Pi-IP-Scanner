@@ -106,7 +106,7 @@ mode = str(input(
 
 if mode == '1':
     mac = str(input('Enter the MAC address of your Raspberry Pi (full MAC is not required, accecpt both "-" and ":" for separator, e.g. d8-3a-dd-11-2 or D8:3A:DD:11:2): '))
-    sp = yaspin(text='[Scanning...]', color='cyan')
+    sp = yaspin(text=f'[Scanning devices which MAC starts with {mac}]', color='cyan')
     sp.start()
 
     mac = normalize_mac(mac)
@@ -132,12 +132,12 @@ if mode == '1':
         print('------------------------------------------------------------')
 
 elif mode == '2':
-    sp = yaspin(text='[Scanning...]', color='cyan')
-    sp.start()
     subnet = get_active_ipv4_subnet()
+    sp = yaspin(text=f'[Scanning devices which match Raspberry Pi OUI on subnet {subnet}]', color='cyan')
+    sp.start()
     pis = scan_pi_by_oui(subnet)
+    sp.stop()
     if pis:
-        sp.stop()
         print('------------------------------------------------------------')
         print(f'✅ Found Raspberry Pi device(s)!')
 
@@ -148,22 +148,23 @@ elif mode == '2':
             print('22 port (SSH): ', scan_ssh_port(ip))
             print('------------------------------------------------------------')
     else:
-        sp.stop()
         print('------------------------------------------------------------')
         print(f'❌ Possible Raspberry Pi devices not found.')
         print('------------------------------------------------------------')
 
 elif mode == '3':
     port = input('Enter the port you want to scan (default 22): ')
-    sp = yaspin(text='[Scanning...]', color='cyan')
-    sp.start()
+
     if port == '' or port.isdigit():
         if port == '': port = 22
         else: port = int(port)
         subnet = get_active_ipv4_subnet()
+        sp = yaspin(text=f'[Scanning devices which port {port} is open on subnet {subnet}]', color='cyan')
+        sp.start()
         pis = scan_ping_ssh(port, subnet)
+        sp.stop()
+
         if pis:
-            sp.stop()
             print(f'✅ Found device(s) which 22 port (SSH) is open!')
             print('------------------------------------------------------------')
             for (ip, mac, model) in pis:
@@ -172,12 +173,10 @@ elif mode == '3':
                 print(f'Model: {model}')
                 print('------------------------------------------------------------')
         else:
-            sp.stop()
             print('------------------------------------------------------------')
             print(f'❌ Possible Raspberry Pi devices not found.')
             print('------------------------------------------------------------')
     else:
-        sp.stop()
         print('------------------------------------------------------------')
         print(f'❌ Consider check your input. You entered `{port}`, but the script only accepts `1 ~ 65535`')
         print('------------------------------------------------------------')
@@ -187,5 +186,4 @@ else:
     print(f'❌ Consider check your input. You entered `{mode}`, but the script only accepts `1, 2, 3`')
     print('------------------------------------------------------------')
 
-print('Done!')
-os.system("pause")
+os.system('pause')
