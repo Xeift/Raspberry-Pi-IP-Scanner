@@ -22,7 +22,32 @@ def get_ip_by_mac_windows(mac):
     return None
 
 def get_ip_by_mac_linux(mac):
-    print('[TODO! Not implemented yet QWQ]')
+    mac = normalize_mac(mac)
+
+    def find_ip_in_output(raw):
+        for line in raw.splitlines():
+            if mac in normalize_mac(line):
+                return line.split()[0]
+        return None
+
+    for cmd in (['ip', '-4', 'neigh'], ['arp', '-an'], ['arp', '-n']):
+        try:
+            raw = subprocess.check_output(cmd, text=True, stderr=subprocess.DEVNULL)
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            continue
+        ip = find_ip_in_output(raw)
+        if ip:
+            return ip
+
+    try:
+        with open('/proc/net/arp', 'r', encoding='utf-8') as f:
+            next(f, None)
+            for line in f:
+                parts = line.split()
+                if len(parts) >= 4 and mac in normalize_mac(parts[3]):
+                    return parts[0]
+    except FileNotFoundError:
+        pass
     return None
 
 OUI_MODEL_MAP = {
