@@ -7,7 +7,10 @@ import time
 
 import nmap
 import psutil
+from dotenv import load_dotenv
 from yaspin import yaspin
+
+load_dotenv()
 
 
 def normalize_mac(raw_mac):
@@ -120,17 +123,27 @@ def scan_ping_ssh(port, subnet):
     return pis
 
 
+rpi_mac_env = os.getenv('RPI_MAC')
 
-mode = str(input(
-    'Enter scan mode.\n' \
-    '[1] Get Raspberry Pi IP by specific MAC address (very fast)\n' \
-    '[2] Get possible Raspberry Pi IP by comparing OUI (medium)\n' \
-    '[3] Get possible Raspberry Pi IP by scanning which specific port is open (medium)\n' \
-    'If you know the MAC of your RPI, use [1]. Otherwise, use [2] or [3]: '
-))
+if rpi_mac_env:
+    print(f'Found RPI_MAC in .env: {rpi_mac_env}')
+    print('------------------------------------------------------------')
+    print('Using mode 1 (Get Raspberry Pi IP by specific MAC address)')
+    print('------------------------------------------------------------')
+    mode = '1'
+    mac = rpi_mac_env
+else:
+    mode = str(input(
+        'Enter scan mode.\n' \
+        '[1] Get Raspberry Pi IP by specific MAC address (very fast)\n' \
+        '[2] Get possible Raspberry Pi IP by comparing OUI (medium)\n' \
+        '[3] Get possible Raspberry Pi IP by scanning which specific port is open (medium)\n' \
+        'If you know the MAC of your RPI, use [1]. Otherwise, use [2] or [3]: '
+    ))
 
 if mode == '1':
-    mac = str(input('Enter the MAC address of your Raspberry Pi (full MAC is not required, accecpt both "-" and ":" for separator, e.g. d8-3a-dd-11-2 or D8:3A:DD:11:2): '))
+    if not rpi_mac_env:
+        mac = str(input('Enter the MAC address of your Raspberry Pi (full MAC is not required, accecpt both "-" and ":" for separator, e.g. d8-3a-dd-11-2 or D8:3A:DD:11:2): '))
     sp = yaspin(text=f'[Scanning devices which MAC starts with {mac}]', color='cyan')
     sp.start()
 

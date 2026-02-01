@@ -1,3 +1,4 @@
 python-nmap>=0.7.1
 psutil>=7.0.0
 yaspin>=3.1.0
+python-dotenv>=1.0.0
